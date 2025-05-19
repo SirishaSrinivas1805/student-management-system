@@ -124,12 +124,12 @@ student-management-system/
 
 ### Backend
 
-cd backend
-npm install
-npm run dev
+-cd backend
+-npm install
+-npm run dev
 
 ### Frontend
 
-cd frontend
-npm install
-npm start
+-cd frontend
+-npm install
+-npm start
