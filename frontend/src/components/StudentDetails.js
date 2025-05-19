@@ -1,15 +1,16 @@
 import 'react-toastify/dist/ReactToastify.css';
 
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import Pagination from './Pagination';
-import { auth } from "./utils/firebaseConfig";
+import { auth } from "../utils/firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
-import { logout } from "./utils/authService";
+import { logout } from "../utils/firebaseAuthService";
+import Loading from './Loading';
+const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
-
-function Student() {
+function StudentDetails() {
   const [data, setData] = useState([]); // Full data from API
   const [filteredData, setFilteredData] = useState([]); // Data after search/sort filter
   const [searchTerm, setSearchTerm] = useState("");
@@ -18,6 +19,9 @@ function Student() {
   const [records] = useState(5); // Records per page fixed at 5
   const [loading, setLoading] = useState(true); // Loading auth/user data
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+  const [isDisabled, setIsDisabled] = useState(false)
+
 
   // Monitor Firebase auth state changes
   useEffect(() => {
@@ -31,7 +35,7 @@ function Student() {
 
   // Fetch student data once on mount
   useEffect(() => {
-    fetch("http://localhost:3001/students")
+    fetch(`${BASE_URL}/students`)
       .then(res => res.json())
       .then(resp => {
         setData(resp);
@@ -42,7 +46,7 @@ function Student() {
       });
   }, []);
 
-  if (loading) return <p>Loading user data...</p>;
+  if (loading) return <Loading />;
 
 
   // Filter data based on search term
@@ -83,29 +87,58 @@ function Student() {
 
   // Delete student and update data & filteredData
   const removeStudent = (id) => {
-    fetch(`http://localhost:3001/students/${id}`, { method: "DELETE" })
+    fetch(`${BASE_URL}/students/${id}`, { method: "DELETE" })
       .then(res => {
         if (res.status === 200) {
-          const newData = data.filter(student => student.id !== id);
+          const newData = data.filter(student => student._id !== id);
           setData(newData);
-          const newFiltered = filteredData.filter(student => student.id !== id);
+          const newFiltered = filteredData.filter(student => student._id !== id);
           setFilteredData(newFiltered);
           toast.success("Student data deleted successfully!", {
             position: "top-center",
-            autoClose: 1000
+            autoClose: 1000,
+            hideProgressBar: false,
           });
-        } else {
-          throw new Error("Failed to delete");
+        setIsDisabled(true);
+        setTimeout(() => setIsDisabled(false),2500);
         }
       })
       .catch(err => {
-        console.error("Error deleting student:", err);
-        toast.error("Failed to delete student data. Please try again.", {
+        setIsDisabled(true);
+        console.error("Delete student data error:", err);
+        toast.error("Failed to delete student data."+err.message, {
           position: "top-center",
-          autoClose: 1000
+          autoClose: 1000,
+          hideProgressBar: false,
         });
+        setTimeout(() => setIsDisabled(false),2500);
       });
   };
+
+  const signOut = async () => {
+    try {
+      await logout();
+      toast.success("Logged out successfully.", {
+        position: "top-center",
+        autoClose: 1000,
+        hideProgressBar: false,
+      });
+      setIsDisabled(true);
+      setTimeout(() => {
+        navigate('/')
+      }, 2000)
+    } catch (error) {
+      setIsDisabled(true);
+      toast.error("Logout failed: " + error.message, {
+        position: "top-center",
+        autoClose: 1000,
+        hideProgressBar: false,
+      });
+      setTimeout(() => setIsDisabled(false),2500);
+    }
+  };
+
+
 
   // Pagination calculations
   const lastIndex = page * records;
@@ -115,7 +148,6 @@ function Student() {
 
   return (
     <>
-
       <div className="bg-light-gradient min-vh-100 py-4">
         <div className="container">
           <div className="row justify-content-center">
@@ -127,11 +159,9 @@ function Student() {
                     <span className="badge bg-info text-dark fw-semibold px-3 py-2 rounded-pill text-nowrap">
                       {user ? user.email : ""}
                     </span>
-                    <Link to="/">
-                      <button className="btn btn-outline-light fw-semibold" onClick={logout}>
-                        Logout
-                      </button>
-                    </Link>
+                    <button className={`btn btn-outline-light fw-semibold ${isDisabled ? "disabled" : ""}`} disabled={isDisabled} onClick={signOut}>
+                      Logout
+                    </button>
                   </div>
                 </div>
 
@@ -187,26 +217,26 @@ function Student() {
                       </thead>
                       <tbody>
                         {currentRecords.length > 0 ? (
-                          currentRecords.map((item) => (
-                            <tr className="text-center" key={item.id}>
-                              <td>{item.id}</td>
-                              <td>{item.name}</td>
-                              <td>{item.regNo}</td>
-                              <td>{item.email}</td>
-                              <td>{item.mobileNo}</td>
-                              <td>{item.percentage}</td>
-                              <td>{item.city}</td>
-                              <td>{item.state}</td>
+                          currentRecords.map((student, index) => (
+                            <tr className="text-center" key={student._id}>
+                              <td>{(page - 1) * records + index + 1}</td>
+                              <td>{student.name}</td>
+                              <td>{student.regNo}</td>
+                              <td>{student.email}</td>
+                              <td>{student.mobileNo}</td>
+                              <td>{student.percentage}</td>
+                              <td>{student.city}</td>
+                              <td>{student.state}</td>
                               <td>
                                 <div className="d-flex justify-content-center gap-2">
-                                  <Link to={`/editstudent/${item.id}`}>
+                                  <Link to={`/editstudent/${student._id}`}>
                                     <button className="btn btn-sm btn-outline-primary">
                                       ✏️ Edit
                                     </button>
                                   </Link>
                                   <button
                                     className="btn btn-sm btn-outline-danger"
-                                    onClick={() => removeStudent(item.id)}
+                                    onClick={() => removeStudent(student._id, ((page - 1) * records + index + 1))}
                                   >
                                     🗑️ Delete
                                   </button>
@@ -240,4 +270,4 @@ function Student() {
   );
 }
 
-export default Student;
+export default StudentDetails;

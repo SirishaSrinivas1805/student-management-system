@@ -2,7 +2,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
+const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 function EditStudent() {
     const [name, setName] = useState("")
@@ -39,7 +39,7 @@ function EditStudent() {
     }
 
     useEffect(() => {
-        fetch(`http://localhost:3001/students/${id}`, { method: 'GET' })
+        fetch(`${BASE_URL}/students/${id}`, { method: 'GET' })
             .then((res) => {
                 if (res.status === 200) {
                     return res.json()
@@ -65,7 +65,7 @@ function EditStudent() {
     function editStudent(e) {
         e.preventDefault()
         let studentdata = { name, regNo, email, mobileNo, percentage, city, state }
-        fetch(`http://localhost:3001/students/${id}`, {
+        fetch(`${BASE_URL}/students/${id}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json"
@@ -84,12 +84,14 @@ function EditStudent() {
                 }, 2000)
             }
         }).catch((err) => {
-            console.log("Error:", err)
-            toast.error("Failed to update student data", {
+            setIsDisabled(true);
+            console.log("Update student data error:", err)
+            toast.error("Failed to update student data" + err.message, {
                 position: "top-center",
                 autoClose: 1000,
                 hideProgressBar: false,
             })
+            setTimeout(() => setIsDisabled(false), 2500);
         })
 
     }

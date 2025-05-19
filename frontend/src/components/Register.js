@@ -2,7 +2,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { useState } from "react";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { register, updateName } from "./utils/authService";
+import { register } from "../utils/firebaseAuthService";
 
 
 function Register() {
@@ -28,7 +28,7 @@ function Register() {
     }
 
 
-    function addUser(e) {
+    const addUser = async (e) => {
         e.preventDefault();
 
         if (password !== password1) {
@@ -37,35 +37,45 @@ function Register() {
                 autoClose: 1000,
                 hideProgressBar: false,
             });
-        } else {
-            register(email, password)
-                .then(async (res) => {
-                    // Update display name
-                    await updateName(name);
-                    return res; // pass res to the next then
-                })
-                .then((res) => {
-                    const user = res.user;
-                    toast.success(`Account created successfully for user ${user.displayName || name}.`, {
-                        position: "top-center",
-                        autoClose: 1000,
-                        hideProgressBar: false,
-                    });
-                    setIsDisabled(true)
-                    setTimeout(() => {
-                        navigate("/");
-                    }, 2000);
-                })
-                .catch((err) => {
-                    console.error("Error: Failed to create account", err);
-                    toast.error("Failed to create account. Please try again.", {
-                        position: "top-center",
-                        autoClose: 2000,
-                        hideProgressBar: false,
-                    });
-                });
+            return;
         }
-    }
+
+        try {
+            const res = await register(email, password);
+            const user = res.user;
+
+            toast.success(`Registration successful for user ${user.displayName || name}.`, {
+                position: "top-center",
+                autoClose: 1000,
+                hideProgressBar: false,
+            });
+
+            setIsDisabled(true);
+
+            setTimeout(() => {
+                navigate("/");
+            }, 2000);
+
+        } catch (error) {
+            setIsDisabled(true);
+            if (error.code === 'auth/email-already-in-use') {
+                toast.error("Email already exists. Try logging in.", {
+                    position: "top-center",
+                    autoClose: 2000,
+                    hideProgressBar: false,
+                });
+                setTimeout(() => setIsDisabled(false),2500);
+            } else {
+                setIsDisabled(true);
+                toast.error("Registration failed: " + error.message, {
+                    position: "top-center",
+                    autoClose: 2000,
+                    hideProgressBar: false,
+                });
+                setTimeout(() => setIsDisabled(false),2500);
+            }
+        }
+    };
 
     return (
         <>

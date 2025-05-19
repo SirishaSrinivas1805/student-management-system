@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { useState } from "react"
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 function AddStudent() {
     const [name, setName] = useState("")
@@ -41,7 +42,7 @@ function AddStudent() {
     function addStudent(e) {
         e.preventDefault()
         let studentdata = { name, regNo, email, mobileNo, percentage, city, state }
-        fetch("http://localhost:3001/students", {
+        fetch(`${BASE_URL}/students`, {
             method: "POST",
             headers: { 'Content-Type': 'Application/json' },
             body: JSON.stringify(studentdata)
@@ -57,20 +58,15 @@ function AddStudent() {
                     navigate('/studentdata');
                 }, 2000)
             }
-            else {
-                toast.error("Failed to add student.", {
-                    position: "top-center",
-                    autoClose: 1000,
-                    hideProgressBar: false,
-                })
-            }
         }).catch((err) => {
-            console.error("Error insert student data:", err);
-            toast.error("Failed to add student.", {
+            setIsDisabled(true);
+            console.error("Insert student data error:", err);
+            toast.error("Failed to add student." + err.message, {
                 position: "top-center",
                 autoClose: 1000,
                 hideProgressBar: false,
             })
+            setTimeout(() => setIsDisabled(false), 2500);
         })
     }
     return (

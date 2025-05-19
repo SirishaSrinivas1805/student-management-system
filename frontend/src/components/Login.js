@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { login } from './utils/authService';
+import { login } from '../utils/firebaseAuthService';
 
 function Login() {
     const [email, setEmail] = useState("")
@@ -17,31 +17,52 @@ function Login() {
     let changePassword = (e) => {
         setPassword(e.target.value)
     }
-    function loginData(e) {
+
+    const loginData = async (e) => {
         e.preventDefault();
-        login(email, password)
-            .then(() => {
-                toast.success("Logged in Successfully", {
-                    position: "top-center",
-                    autoClose: 1000,
-                    hideProgressBar: false,
-                });
-                setIsDisabled(true)
-                setTimeout(() => {
-                    navigate("/studentdata");
-                }, 2000)
-            })
-            .catch((error) => {
-                toast.error("Invalid Credentials", {
-                    position: "top-center",
-                    autoClose: 1000,
-                    hideProgressBar: false,
-                });
-                console.error("Login Error:", error);
+        try {
+            await login(email, password);
+
+            toast.success("Login successful!", {
+                position: "top-center",
+                autoClose: 1500,
+                hideProgressBar: false,
             });
 
+            setIsDisabled(true);
+            setTimeout(() => {
+                navigate("/studentdata");
+            }, 2000);
 
-    }
+        } catch (error) {
+            if (error.code === 'auth/user-not-found') {
+                setIsDisabled(true);
+                toast.error("Account does not exist. Please register.", {
+                    position: "top-center",
+                    autoClose: 2000,
+                    hideProgressBar: false,
+                });
+                setTimeout(() => setIsDisabled(false),2500);
+            } else if (error.code === 'auth/wrong-password') {
+                setIsDisabled(true);
+                toast.error("Incorrect password. Please try again.", {
+                    position: "top-center",
+                    autoClose: 2000,
+                    hideProgressBar: false,
+                });
+                setTimeout(() => setIsDisabled(false),2500);
+            } else {
+                setIsDisabled(true);
+                toast.error("Login failed: " + error.message, {
+                    position: "top-center",
+                    autoClose: 2000,
+                    hideProgressBar: false,
+                });
+                setTimeout(() => setIsDisabled(false),2500);
+            }
+        }
+    };
+
 
     return (
         <>

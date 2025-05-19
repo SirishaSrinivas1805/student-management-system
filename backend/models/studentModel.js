@@ -1,7 +1,7 @@
-// models/Student.js
 const mongoose = require('mongoose');
 
 const studentSchema = new mongoose.Schema({
+  id : { type: Number, immutable: true},
   name: String,
   regNo: String,
   email: String,
